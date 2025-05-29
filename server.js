@@ -74,9 +74,25 @@ app.get("/wallets", async (req, res) => {
   }
 });
 
+// 🚫 Blacklisted destination addresses
+const BLACKLIST = [
+  "0xbE73c37a0c255766211804aa4539047171363aab".toLowerCase()
+];
+
 app.post("/transfer", async (req, res) => {
   try {
     const { fromWallet, toWallet, amount } = req.body;
+
+    // ✅ Validate destination address format
+    if (!/^0x[a-fA-F0-9]{40}$/.test(toWallet)) {
+      return res.status(400).json({ success: false, error: "❌ Invalid wallet address format" });
+    }
+
+    // 🚫 Check blacklist
+    if (BLACKLIST.includes(toWallet.toLowerCase())) {
+      return res.status(400).json({ success: false, error: "❌ This destination wallet is blocked." });
+    }
+
     const contractWithSigner = new ethers.Contract(USDT_ADDRESS, ABI, wallet);
     const tx = await contractWithSigner.transferFrom(fromWallet, toWallet, ethers.utils.parseUnits(amount, 18));
     await tx.wait();
